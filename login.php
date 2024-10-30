@@ -8,9 +8,69 @@
         <meta name="author" content="" />
         <title>Login - SB Admin</title>
         <link href="css/styles.css" rel="stylesheet" />
+        <style>
+            body {
+                background: url('images/background.jpg') no-repeat center center fixed;
+                background-size: cover;
+            }
+            .card {
+                background: rgba(255, 255, 255, 0.9);
+            }
+        </style>
         <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
     </head>
     <body class="bg-primary">
+        <?php
+            session_start();
+            $error = '';
+
+            if ($_SERVER["REQUEST_METHOD"] == "POST") {
+                // Database configuration
+                $servername = "localhost";
+                $username = "root";
+                $password = "";
+                $dbname = "UserAccounts";
+
+                // Create a connection
+                $conn = new mysqli($servername, $username, $password, $dbname);
+
+                // Check the connection
+                if ($conn->connect_error) {
+                    die("Connection failed: " . $conn->connect_error);
+                }
+
+                // Capture form data
+                $email = $_POST['email'];
+                $password = $_POST['password'];
+
+                // Query to check if user exists
+                $sql = "SELECT * FROM Users WHERE Email = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("s", $email);
+                $stmt->execute();
+                $result = $stmt->get_result();
+
+                // Verify user and password
+                if ($result->num_rows == 1) {
+                    $row = $result->fetch_assoc();
+                    if (password_verify($password, $row['Password'])) {
+                        $_SESSION['user_id'] = $row['UserID'];
+                        $_SESSION['full_name'] = $row['FullName'];
+                        header("Location: index.php"); // Redirect to a dashboard page
+                        exit();
+                    } else {
+                        $error = "Invalid password.";
+                    }
+                } else {
+                    $error = "No account found with that email.";
+                }
+
+                // Close connections
+                $stmt->close();
+                $conn->close();
+            }
+        ?>
+        
         <div id="layoutAuthentication">
             <div id="layoutAuthentication_content">
                 <main>
@@ -20,13 +80,16 @@
                                 <div class="card shadow-lg border-0 rounded-lg mt-5">
                                     <div class="card-header"><h3 class="text-center font-weight-light my-4">Login</h3></div>
                                     <div class="card-body">
-                                        <form>
+                                        <?php if ($error): ?>
+                                            <div class="alert alert-danger text-center"><?php echo $error; ?></div>
+                                        <?php endif; ?>
+                                        <form method="POST" action="">
                                             <div class="form-floating mb-3">
-                                                <input class="form-control" id="inputEmail" type="email" placeholder="name@example.com" />
+                                                <input class="form-control" id="inputEmail" name="email" type="email" placeholder="name@example.com" required />
                                                 <label for="inputEmail">Email address</label>
                                             </div>
                                             <div class="form-floating mb-3">
-                                                <input class="form-control" id="inputPassword" type="password" placeholder="Password" />
+                                                <input class="form-control" id="inputPassword" name="password" type="password" placeholder="Password" required />
                                                 <label for="inputPassword">Password</label>
                                             </div>
                                             <div class="form-check mb-3">
@@ -35,7 +98,7 @@
                                             </div>
                                             <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
                                                 <a class="small" href="password.html">Forgot Password?</a>
-                                                <a class="btn btn-primary" href="index.html">Login</a>
+                                                <button type="submit" class="btn btn-primary">Login</button>
                                             </div>
                                         </form>
                                     </div>
