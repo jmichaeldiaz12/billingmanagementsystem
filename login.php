@@ -20,57 +20,73 @@
         <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
     </head>
     <body class="bg-primary">
-        <?php
-            session_start();
-            $error = '';
+    <?php
+session_start();
+$error = '';
 
-            if ($_SERVER["REQUEST_METHOD"] == "POST") {
-                // Database configuration
-                $servername = "localhost";
-                $username = "root";
-                $password = "";
-                $dbname = "UserAccounts";
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Database configuration
+    $servername = "sql12.freemysqlhosting.net";
+    $username = "sql12741842";
+    $password = "NgerPpSwvn";
+    $dbname = "sql12741842";
 
-                // Create a connection
-                $conn = new mysqli($servername, $username, $password, $dbname);
+    // Create a connection
+    $conn = new mysqli($servername, $username, $password, $dbname);
 
-                // Check the connection
-                if ($conn->connect_error) {
-                    die("Connection failed: " . $conn->connect_error);
-                }
+    // Check the connection
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
 
-                // Capture form data
-                $email = $_POST['email'];
-                $password = $_POST['password'];
+    // Capture form data
+    $email = $_POST['email'];
+    $password = $_POST['password'];
 
-                // Query to check if user exists
-                $sql = "SELECT * FROM Users WHERE Email = ?";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("s", $email);
-                $stmt->execute();
-                $result = $stmt->get_result();
+    // Query to check if user exists and get additional data (including Plan and Price)
+    $sql = "
+        SELECT c.*, s.Price 
+        FROM Clients c 
+        LEFT JOIN Subscription s ON c.Plan = s.Plan 
+        WHERE c.Email = ?
+    ";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-                // Verify user and password
-                if ($result->num_rows == 1) {
-                    $row = $result->fetch_assoc();
-                    if (password_verify($password, $row['Password'])) {
-                        $_SESSION['user_id'] = $row['UserID'];
-                        $_SESSION['full_name'] = $row['FullName'];
-                        header("Location: index.php"); // Redirect to a dashboard page
-                        exit();
-                    } else {
-                        $error = "Invalid password.";
-                    }
-                } else {
-                    $error = "No account found with that email.";
-                }
+    // Verify user and password
+    if ($result->num_rows == 1) {
+        $row = $result->fetch_assoc();
+        if (password_verify($password, $row['Password'])) {
+            // Set session variables
+            $_SESSION['user_id'] = $row['ClientID'];
+            $_SESSION['full_name'] = $row['FullName'];
+            $_SESSION['plan'] = $row['Plan']; // Store the plan in session
+            $_SESSION['price'] = $row['Price']; // Store the price in session
 
-                // Close connections
-                $stmt->close();
-                $conn->close();
-            }
-        ?>
-        
+            // Debugging output (optional)
+            // var_dump($_SESSION); // Uncomment to check session contents
+            // exit();
+
+            // Redirect to index.php after successful login
+            header("Location: index.php");
+            exit();
+        } else {
+            $error = "Invalid password.";
+        }
+    } else {
+        $error = "No account found with that email.";
+    }
+
+    // Close connections
+    $stmt->close();
+    $conn->close();
+}
+?>
+
+
+     
         <div id="layoutAuthentication">
             <div id="layoutAuthentication_content">
                 <main>

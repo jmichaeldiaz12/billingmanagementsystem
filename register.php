@@ -13,49 +13,65 @@
   </head>
   
   <body class="bg-primary">
-    <?php
-      if ($_SERVER["REQUEST_METHOD"] == "POST") {
-          // Database configuration
-          $servername = "localhost";
-          $username = "root";
-          $password = "";
-          $dbname = "twis";
 
-          // Create a connection
-          $conn = new mysqli($servername, $username, $password, $dbname);
+  <?php
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Database configuration
+    $servername = "sql12.freemysqlhosting.net";
+    $username = "sql12741842";
+    $password = "NgerPpSwvn";
+    $dbname = "sql12741842";
 
-          // Check the connection
-          if ($conn->connect_error) {
-              die("Connection failed: " . $conn->connect_error);
-          }
+    // Create a connection
+    $conn = new mysqli($servername, $username, $password, $dbname);
 
-          // Capture form data
-          $fullName = $_POST['fullName'];
-          $email = $_POST['email'];
-          $contactNumber = $_POST['contactNumber'];
-          $address = $_POST['address'];
-          $plan = $_POST['plan'];
-          $password = password_hash($_POST['password'], PASSWORD_BCRYPT); // Hash the password
+    // Check the connection
+    if ($conn->connect_error) {
+        die("<div class='alert alert-danger text-center'>Connection failed. Please try again later.</div>");
+    }
 
-          // Insert data into the Users table
-          $sql = "INSERT INTO Users (FullName, Email, ContactNumber, Address, Plan, Password) VALUES (?, ?, ?, ?, ?, ?)";
+    // Capture and sanitize form data
+    $fullName = htmlspecialchars(trim($_POST['fullName']));
+    $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
+    $contactNumber = htmlspecialchars(trim($_POST['contactNumber']));
+    $address = htmlspecialchars(trim($_POST['address']));
+    $plan = htmlspecialchars(trim($_POST['plan']));
+    $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
-          // Prepare and bind
-          $stmt = $conn->prepare($sql);
-          $stmt->bind_param("ssssss", $fullName, $email, $contactNumber, $address, $plan, $password);
+    // Handle file upload
+    $idImage = null;
+    if (isset($_FILES['idImage']) && $_FILES['idImage']['error'] == 0) {
+        $idImage = file_get_contents($_FILES['idImage']['tmp_name']);
+    }
 
-          // Execute the query
-          if ($stmt->execute()) {
-              echo "<div class='alert alert-success text-center'>Account created successfully!</div>";
-          } else {
-              echo "<div class='alert alert-danger text-center'>Error: " . $conn->error . "</div>";
-          }
+    // Validate email
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo "<div class='alert alert-danger text-center'>Invalid email format.</div>";
+        exit;
+    }
 
-          // Close the statement and connection
-          $stmt->close();
-          $conn->close();
-      }
-    ?>
+    // Prepare the SQL statement to prevent SQL injection
+    $sql = "INSERT INTO Clients (FullName, Email, Phone, Address, Plan, Password, IDImage) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssssssb", $fullName, $email, $contactNumber, $address, $plan, $password, $idImage);
+
+    // Execute the query and check for errors
+    if ($stmt->execute()) {
+        echo "<script>
+                alert('Account created successfully!');
+                setTimeout(function() {
+                    window.location.href = 'login.php';
+                }, 1000);
+              </script>";
+    } else {
+        echo "<div class='alert alert-danger text-center'>Error creating account. Please try again.</div>";
+    }
+
+    // Close the statement and connection
+    $stmt->close();
+    $conn->close();
+}
+?>
 
     <div id="layoutAuthentication">
       <div id="layoutAuthentication_content">
@@ -68,7 +84,7 @@
                     <h3 class="text-center font-weight-light my-4">Create Account</h3>
                   </div>
                   <div class="card-body">
-                    <form method="POST" action="">
+                    <form method="POST" action="" enctype="multipart/form-data">
                       <div class="row mb-3">
                         <div class="col-md-12">
                           <div class="form-floating mb-3 mb-md-0">
@@ -102,6 +118,10 @@
                       <div class="form-floating mb-3">
                         <input class="form-control" id="inputPassword" name="password" type="password" placeholder="Enter your password" required />
                         <label for="inputPassword">Password</label>
+                      </div>
+                      <div class="mb-3">
+                        <label for="inputIDImage" class="form-label">Upload ID Image</label>
+                        <input class="form-control" id="inputIDImage" name="idImage" type="file" accept="image/*" required />
                       </div>
                       <div class="mt-4 mb-0">
                         <div class="d-grid">
